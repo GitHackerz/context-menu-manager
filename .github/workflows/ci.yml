@@ -1,0 +1,96 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-frontend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Lint
+        run: npm run lint --if-present
+      
+      - name: Type check
+        run: npx tsc --noEmit
+
+  test-backend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable-x86_64-pc-windows-gnu
+          override: true
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache target directory
+        uses: actions/cache@v3
+        with:
+          path: src-tauri/target
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Check formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      
+      - name: Run clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+      
+      - name: Run tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+  build:
+    needs: [test-frontend, test-backend]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable-x86_64-pc-windows-gnu
+          override: true
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Tauri app
+        run: npm run tauri build
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-executable
+          path: src-tauri/target/release/context-menu-manager.exe
