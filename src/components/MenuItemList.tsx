@@ -3,7 +3,7 @@ import { Trash2, Terminal, Image as ImageIcon } from "lucide-react";
 export interface MenuItem {
   name: string;
   command: string;
-  icon?: string;
+  icon?: string | null;
   location: string;
   registry_path: string;
 }

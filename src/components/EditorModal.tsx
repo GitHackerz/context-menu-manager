@@ -103,6 +103,13 @@ export function EditorModal({ isOpen, onClose, onSave, location }: EditorModalPr
 
   const handleBrowseCommand = async () => {
     try {
+      // Check if running in Tauri
+      // @ts-ignore
+      if (!window.__TAURI_INTERNALS__) {
+        alert("File picker is only available in the desktop application.");
+        return;
+      }
+
       const selected = await open({
         multiple: false,
         directory: false,
@@ -125,6 +132,13 @@ export function EditorModal({ isOpen, onClose, onSave, location }: EditorModalPr
 
   const handleBrowseIcon = async () => {
     try {
+      // Check if running in Tauri
+      // @ts-ignore
+      if (!window.__TAURI_INTERNALS__) {
+        alert("File picker is only available in the desktop application.");
+        return;
+      }
+
       const selected = await open({
         multiple: false,
         directory: false,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { api } from "./lib/api";
 import { Sidebar } from "./components/Sidebar";
 import { MenuItemList, MenuItem } from "./components/MenuItemList";
 import { EditorModal } from "./components/EditorModal";
@@ -15,13 +15,14 @@ function App() {
   const loadItems = async () => {
     setIsLoading(true);
     try {
-      const result = await invoke<MenuItem[]>("get_context_menu_items", {
-        location: activeTab,
-      });
+      const result = await api.getItems(activeTab);
       setItems(result);
     } catch (error) {
       console.error("Failed to load items:", error);
-      alert(`Error: ${error}`);
+      // Don't alert in browser mode if it's just a connection error
+      if (error instanceof Error && !error.message.includes("fetch")) {
+        alert(`Error: ${error}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -33,12 +34,7 @@ function App() {
 
   const handleAddItem = async (name: string, command: string, icon: string) => {
     try {
-      await invoke("add_context_menu_item", {
-        location: activeTab,
-        name,
-        command,
-        icon: icon || null,
-      });
+      await api.addItem(activeTab, name, command, icon || null);
       await loadItems();
     } catch (error) {
       console.error("Failed to add item:", error);
@@ -50,10 +46,7 @@ function App() {
     if (!confirm(`Are you sure you want to remove "${item.name}"?`)) return;
 
     try {
-      await invoke("remove_context_menu_item", {
-        location: activeTab,
-        name: item.name,
-      });
+      await api.removeItem(activeTab, item.name);
       await loadItems();
     } catch (error) {
       console.error("Failed to delete item:", error);

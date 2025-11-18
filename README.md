@@ -31,9 +31,6 @@
 
 ## 📸 Screenshots
 
-<details>
-<summary>Click to expand</summary>
-
 ### Main Interface
 ![Main Interface](docs/main-interface.png)
 
@@ -42,8 +39,6 @@
 
 ### Custom Item Editor
 ![Editor](docs/editor.png)
-
-</details>
 
 ## 🚀 Installation
 
