@@ -1,13 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
 
-// Debug logging
-console.log('=== Tauri API Debug ===');
-// Check for Tauri v2 internals or v1 global
-const isTauri = () => !!(window as any).__TAURI_INTERNALS__ || !!(window as any).__TAURI__;
-console.log('isTauri:', isTauri());
-console.log('invoke function:', invoke);
-console.log('typeof invoke:', typeof invoke);
-console.log('======================');
+interface TauriWindow extends Window {
+  __TAURI_INTERNALS__?: unknown;
+  __TAURI__?: unknown;
+}
+
+const isTauri = () =>
+  !!((window as TauriWindow).__TAURI_INTERNALS__ || (window as TauriWindow).__TAURI__);
 
 export interface MenuItem {
   name: string;
@@ -46,19 +45,15 @@ const MOCK_ITEMS: Record<string, MenuItem[]> = {
   Background: [],
 };
 
-
 export const api = {
   getItems: async (location: string): Promise<MenuItem[]> => {
     try {
       const result = await invoke<MenuItem[]>('get_context_menu_items', { location });
-      console.log('Successfully loaded items from registry:', result);
       return result;
     } catch (error) {
       if (isTauri()) {
-        console.error('Tauri invoke failed:', error);
         throw error;
       }
-      console.log('Running in browser mode, returning mock items. Error:', error);
       return new Promise((resolve) => {
         setTimeout(() => resolve(MOCK_ITEMS[location] || []), 500);
       });
@@ -68,13 +63,10 @@ export const api = {
   addItem: async (location: string, name: string, command: string, icon: string | null) => {
     try {
       await invoke('add_context_menu_item', { location, name, command, icon });
-      console.log('Successfully added item via Tauri');
     } catch (error) {
       if (isTauri()) {
-        console.error('Tauri invoke failed:', error);
         throw error;
       }
-      console.log('Running in browser mode, adding mock item. Error:', error);
       if (!MOCK_ITEMS[location]) MOCK_ITEMS[location] = [];
       MOCK_ITEMS[location].push({
         name,
@@ -89,13 +81,10 @@ export const api = {
   removeItem: async (location: string, name: string) => {
     try {
       await invoke('remove_context_menu_item', { location, name });
-      console.log('Successfully removed item via Tauri');
     } catch (error) {
       if (isTauri()) {
-        console.error('Tauri invoke failed:', error);
         throw error;
       }
-      console.log('Running in browser mode, removing mock item. Error:', error);
       if (MOCK_ITEMS[location]) {
         MOCK_ITEMS[location] = MOCK_ITEMS[location].filter((i) => i.name !== name);
       }
