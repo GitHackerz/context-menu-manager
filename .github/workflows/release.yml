@@ -2,11 +2,34 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+      - '!.github/workflows/release.yml'
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  create-release:
+  release:
+    runs-on: windows-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+          package-name: context-menu-manager
+          
+  build-and-upload:
+    needs: release
+    if: needs.release.outputs.release_created
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,20 +46,57 @@ jobs:
           toolchain: stable-x86_64-pc-windows-gnu
           override: true
       
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+      
       - name: Install dependencies
         run: npm ci
       
       - name: Build Tauri app
         run: npm run tauri build
       
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            src-tauri/target/release/context-menu-manager.exe
-            src-tauri/target/release/bundle/msi/*.msi
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+      - name: Generate checksums
+        run: |
+          cd src-tauri/target/release
+          if (Test-Path "context-menu-manager.exe") {
+            certutil -hashfile context-menu-manager.exe SHA256 > context-menu-manager.exe.sha256
+          }
+          cd bundle/msi
+          Get-ChildItem *.msi | ForEach-Object {
+            certutil -hashfile $_.Name SHA256 > "$($_.Name).sha256"
+          }
+        shell: powershell
+      
+      - name: Upload Release Assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ needs.release.outputs.tag_name }}"
+          
+          # Upload executable
+          if (Test-Path "src-tauri/target/release/context-menu-manager.exe") {
+            gh release upload $tag "src-tauri/target/release/context-menu-manager.exe" --clobber
+            gh release upload $tag "src-tauri/target/release/context-menu-manager.exe.sha256" --clobber
+          }
+          
+          # Upload MSI installers
+          Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | ForEach-Object {
+            gh release upload $tag $_.FullName --clobber
+            gh release upload $tag "$($_.FullName).sha256" --clobber
+          }
+        shell: powershell

@@ -179,7 +179,7 @@ pub fn get_context_menu_items(location: String) -> Result<Vec<MenuItem>, String>
 
 ## Commit Messages
 
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. **This is important** because commit messages automatically trigger releases and determine version bumps!
 
 ```
 <type>(<scope>): <subject>
@@ -189,18 +189,31 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 <footer>
 ```
 
-### Types
+### Types and Version Bumping
 
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `test`: Adding or updating tests
-- `chore`: Maintenance tasks
+Your commit type determines how the version is bumped:
+
+- `feat`: New feature → **Minor version bump** (0.1.0 → 0.2.0)
+- `fix`: Bug fix → **Patch version bump** (0.1.0 → 0.1.1)
+- `feat!` or `BREAKING CHANGE:`: Breaking change → **Major version bump** (0.1.0 → 1.0.0)
+- `docs`: Documentation changes → No version bump
+- `style`: Code style changes (formatting, etc.) → No version bump
+- `refactor`: Code refactoring → No version bump
+- `test`: Adding or updating tests → No version bump
+- `chore`: Maintenance tasks → No version bump
+- `perf`: Performance improvements → **Patch version bump**
+
+### Automated Releases
+
+When you merge to `main`:
+1. Release-please analyzes your commit messages
+2. Automatically bumps the version based on commit types
+3. Updates `CHANGELOG.md` with your changes
+4. Creates a GitHub release with built executables and installers
 
 ### Examples
 
+**Feature (triggers minor version bump):**
 ```bash
 feat(ui): add file browser button to command input
 
@@ -210,6 +223,7 @@ a native file picker dialog for selecting executables.
 Closes #42
 ```
 
+**Bug Fix (triggers patch version bump):**
 ```bash
 fix(registry): handle empty registry keys gracefully
 
@@ -219,14 +233,34 @@ keys. Now it returns an empty array instead.
 Fixes #38
 ```
 
+**Breaking Change (triggers major version bump):**
+```bash
+feat(api)!: redesign context menu data structure
+
+BREAKING CHANGE: MenuItem interface now uses `command` instead of `path`
+and `args` fields. Existing saved configurations will need migration.
+
+Closes #50
+```
+
+**No Release (documentation only):**
+```bash
+docs: update installation instructions
+
+Added troubleshooting section for common Windows build issues.
+```
+
 ## Pull Request Process
 
 1. **Update documentation** if you're changing functionality
 2. **Add tests** if applicable
 3. **Ensure all tests pass**: `npm test` (when available)
-4. **Update CHANGELOG.md** with your changes
+4. **Use proper commit message format** (see [Commit Messages](#commit-messages))
 5. **Request review** from maintainers
 6. **Address feedback** promptly
+
+> [!NOTE]
+> The CHANGELOG.md is automatically generated from your commit messages when your PR is merged. No manual updates needed!
 
 ### PR Checklist
 

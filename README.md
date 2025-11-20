@@ -221,7 +221,28 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for deta
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed setup instructions.
 
-## 📝 License
+## � Releases
+
+This project uses automated releases based on [Conventional Commits](https://www.conventionalcommits.org/). 
+
+### How Releases Work
+
+- **Automatic**: Every merge to `main` with `feat:` or `fix:` commits triggers a new release
+- **Version Bumping**: 
+  - `feat:` → Minor version (0.1.0 → 0.2.0)
+  - `fix:` → Patch version (0.1.0 → 0.1.1)
+  - `feat!:` or `BREAKING CHANGE:` → Major version (0.1.0 → 1.0.0)
+- **Changelog**: Auto-generated from commit messages
+- **Artifacts**: Each release includes:
+  - Standalone `.exe` executable
+  - `.msi` Windows installer
+  - SHA256 checksums for verification
+
+### For Contributors
+
+Use proper commit message format (see [CONTRIBUTING.md](CONTRIBUTING.md)) and your changes will automatically be included in the next release!
+
+## �📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
