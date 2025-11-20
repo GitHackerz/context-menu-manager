@@ -24,7 +24,7 @@ fn get_registry_path(location: &str) -> Option<&'static str> {
 pub fn get_context_menu_items(location: String) -> Result<Vec<MenuItem>, String> {
     let path = get_registry_path(&location).ok_or("Invalid location")?;
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    
+
     let shell_key = match hkcu.open_subkey(path) {
         Ok(key) => key,
         Err(_) => return Ok(Vec::new()),
@@ -33,11 +33,13 @@ pub fn get_context_menu_items(location: String) -> Result<Vec<MenuItem>, String>
     let mut items = Vec::new();
 
     for name in shell_key.enum_keys().filter_map(|x| x.ok()) {
-        if name.is_empty() { continue; }
-        
+        if name.is_empty() {
+            continue;
+        }
+
         if let Ok(item_key) = shell_key.open_subkey(&name) {
             let icon: Option<String> = item_key.get_value("Icon").ok();
-            
+
             let command = if let Ok(command_key) = item_key.open_subkey("command") {
                 command_key.get_value("").unwrap_or_default()
             } else {
@@ -58,21 +60,32 @@ pub fn get_context_menu_items(location: String) -> Result<Vec<MenuItem>, String>
 }
 
 #[tauri::command]
-pub fn add_context_menu_item(location: String, name: String, command: String, icon: Option<String>) -> Result<(), String> {
+pub fn add_context_menu_item(
+    location: String,
+    name: String,
+    command: String,
+    icon: Option<String>,
+) -> Result<(), String> {
     let base_path = get_registry_path(&location).ok_or("Invalid location")?;
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    
+
     let (shell_key, _) = hkcu.create_subkey(base_path).map_err(|e| e.to_string())?;
     let (item_key, _) = shell_key.create_subkey(&name).map_err(|e| e.to_string())?;
-    
+
     if let Some(icon_path) = icon {
         if !icon_path.is_empty() {
-            item_key.set_value("Icon", &icon_path).map_err(|e| e.to_string())?;
+            item_key
+                .set_value("Icon", &icon_path)
+                .map_err(|e| e.to_string())?;
         }
     }
-    
-    let (command_key, _) = item_key.create_subkey("command").map_err(|e| e.to_string())?;
-    command_key.set_value("", &command).map_err(|e| e.to_string())?;
+
+    let (command_key, _) = item_key
+        .create_subkey("command")
+        .map_err(|e| e.to_string())?;
+    command_key
+        .set_value("", &command)
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -81,9 +94,13 @@ pub fn add_context_menu_item(location: String, name: String, command: String, ic
 pub fn remove_context_menu_item(location: String, name: String) -> Result<(), String> {
     let base_path = get_registry_path(&location).ok_or("Invalid location")?;
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    
-    let shell_key = hkcu.open_subkey_with_flags(base_path, KEY_ALL_ACCESS).map_err(|e| e.to_string())?;
-    shell_key.delete_subkey_all(&name).map_err(|e| e.to_string())?;
+
+    let shell_key = hkcu
+        .open_subkey_with_flags(base_path, KEY_ALL_ACCESS)
+        .map_err(|e| e.to_string())?;
+    shell_key
+        .delete_subkey_all(&name)
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
