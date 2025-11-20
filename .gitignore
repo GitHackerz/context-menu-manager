@@ -30,12 +30,10 @@ yarn-error.log*
 .env.*.local
 
 # Ignore package manager files
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
 # Ignore Tauri specific
-src-tauri/Cargo.lock
 src-tauri/WixTools
 
 # Ignore artifacts

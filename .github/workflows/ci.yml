@@ -37,6 +37,7 @@ jobs:
         with:
           toolchain: stable-x86_64-pc-windows-gnu
           override: true
+          components: rustfmt, clippy
       
       - name: Cache cargo registry
         uses: actions/cache@v3
