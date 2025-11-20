@@ -105,8 +105,8 @@ export function EditorModal({ isOpen, onClose, onSave, location }: EditorModalPr
   const handleBrowseCommand = async () => {
     try {
       // Check if running in Tauri
-      // @ts-expect-error - Tauri internals not typed
-      if (!window.__TAURI_INTERNALS__) {
+      // @ts-expect-error - Tauri API not typed
+      if (typeof window.__TAURI__ === 'undefined') {
         alert('File picker is only available in the desktop application.');
         return;
       }

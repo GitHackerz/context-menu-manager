@@ -20,12 +20,21 @@ fn get_registry_path(location: &str) -> Option<&'static str> {
     }
 }
 
+fn get_read_registry_path(location: &str) -> Option<&'static str> {
+    match location {
+        "Files" => Some(r"*\shell"),
+        "Folders" => Some(r"Directory\shell"),
+        "Background" => Some(r"Directory\Background\shell"),
+        _ => None,
+    }
+}
+
 #[tauri::command]
 pub fn get_context_menu_items(location: String) -> Result<Vec<MenuItem>, String> {
-    let path = get_registry_path(&location).ok_or("Invalid location")?;
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let path = get_read_registry_path(&location).ok_or("Invalid location")?;
+    let root = RegKey::predef(HKEY_CLASSES_ROOT);
 
-    let shell_key = match hkcu.open_subkey(path) {
+    let shell_key = match root.open_subkey(path) {
         Ok(key) => key,
         Err(_) => return Ok(Vec::new()),
     };
@@ -38,6 +47,14 @@ pub fn get_context_menu_items(location: String) -> Result<Vec<MenuItem>, String>
         }
 
         if let Ok(item_key) = shell_key.open_subkey(&name) {
+            // Filter out hidden/system items
+            if item_key.get_raw_value("ProgrammaticAccessOnly").is_ok()
+                || item_key.get_raw_value("LegacyDisable").is_ok()
+                || item_key.get_raw_value("HideInOldContextMenu").is_ok()
+            {
+                continue;
+            }
+
             let icon: Option<String> = item_key.get_value("Icon").ok();
 
             let command = if let Ok(command_key) = item_key.open_subkey("command") {
@@ -46,13 +63,16 @@ pub fn get_context_menu_items(location: String) -> Result<Vec<MenuItem>, String>
                 String::new()
             };
 
-            items.push(MenuItem {
-                name: name.clone(),
-                command,
-                icon,
-                location: location.clone(),
-                registry_path: format!("{}\\{}", path, name),
-            });
+            // Filter out items without a command (usually system verbs or COM objects)
+            if !command.is_empty() {
+                items.push(MenuItem {
+                    name: name.clone(),
+                    command,
+                    icon,
+                    location: location.clone(),
+                    registry_path: format!("{}\\{}", path, name),
+                });
+            }
         }
     }
 
